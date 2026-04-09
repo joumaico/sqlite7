@@ -8,9 +8,9 @@ def readme():
 
 setup(
     name="sqlite7",
-    version="0.0.0",
+    version="1.0.0",
     author="Joumaico Maulas",
-    description="A lightweight SQLite database toolkit for Python.",
+    description="A DB-API 2.0 style interface for SQLite databases.",
     long_description=readme(),
     long_description_content_type="text/markdown",
     url="https://github.com/joumaico/sqlite7",
