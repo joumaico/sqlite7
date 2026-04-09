@@ -2,14 +2,39 @@
 
 ## `StatementResult`
 
-Immutable dataclass containing metadata about write statements.
+`StatementResult` is the small metadata object returned by write-oriented methods such as `execute()`, `insert()`, `insert_many()`, `update()`, `delete()`, and `upsert()`.
 
-**Fields**
+It helps developers inspect what happened after a statement without parsing driver-specific objects.
 
-- `rowcount`: Number of affected rows reported by SQLite
-- `lastrowid`: Last inserted row id when available
+### Why it is useful
 
-**Example**
+- It gives a predictable place to read `rowcount`
+- It exposes `lastrowid` when SQLite provides one
+- It keeps write-heavy service code and tests easy to reason about
+
+### Fields
+
+#### `rowcount`
+
+The number of rows SQLite reports as affected.
+
+Useful for confirming whether an update or delete actually changed anything.
+
+```python
+from sqlite7 import open_db
+
+with open_db(":memory:") as db:
+    db.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, active INTEGER)")
+    db.insert_many("users", [{"active": 1}, {"active": 1}, {"active": 0}])
+    result = db.update("users", {"active": 0}, where="active = ?", params=[1])
+    print(result.rowcount)
+```
+
+#### `lastrowid`
+
+The last inserted row id, when one is available.
+
+Helpful when your application creates a record and immediately needs its generated primary key.
 
 ```python
 from sqlite7 import open_db
@@ -17,18 +42,29 @@ from sqlite7 import open_db
 with open_db(":memory:") as db:
     db.execute("CREATE TABLE items (id INTEGER PRIMARY KEY, name TEXT)")
     result = db.insert("items", {"name": "Ada"})
-    print(result.rowcount)
     print(result.lastrowid)
 ```
 
 ## `RowDict`
 
-Type alias:
+`RowDict` is the default row shape returned by read helpers.
+
+It is effectively:
 
 ```python
 dict[str, Any]
 ```
 
-This is the default row shape returned by query helpers and fetch methods unless you supply a custom `row_factory`.
+### Why it is useful
 
----
+Returning dictionaries makes rows easy for developers to inspect, serialize, log, and pass between layers without additional adaptation.
+
+```python
+from sqlite7 import open_db
+
+with open_db(":memory:") as db:
+    db.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)")
+    db.insert("users", {"name": "Ada"})
+    row = db.fetch_one("SELECT id, name FROM users")
+    print(row["name"])
+```
